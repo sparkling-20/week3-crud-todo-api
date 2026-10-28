@@ -1,6 +1,15 @@
+require('dotenv').config();
+
 const express = require('express');
+const cors = require('cors');
 const app = express();
-app.use(express.json()); // Parse JSON bodies
+
+app.use(express.json());
+app.use(cors('*'));
+
+app.get('/', (req, res) => {
+    res.send('Todo API Ready!');
+    });
 
 let todos = [
   { id: 1, task: 'Learn Node.js', completed: false },
@@ -94,15 +103,9 @@ app.delete('/todos/:id', (req, res) => {
     return res.status(404).json({ error: 'Not found' });
   res.status(204).send(); // Silent success
 });
-
-app.get('/todos/completed', (req, res) => {
-  const completed = todos.filter((t) => t.completed);
-  res.json(completed); // Custom Read!
-});
-
 app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Server error!' });
 });
 
-const PORT = 3002;
+const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => console.log(`Server on port ${PORT}`));
