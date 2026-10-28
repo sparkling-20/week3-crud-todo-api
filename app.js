@@ -12,8 +12,8 @@ app.get('/', (req, res) => {
     });
 
 let todos = [
-  { id: 1, task: 'Learn Node.js', completed: false },
-  { id: 2, task: 'Build CRUD API', completed: false },
+  { id: 1, task: 'finish week 4 slides', completed: false },
+  { id: 2, task: 'Deploy API (today!)', completed: true},
 ];
 
 // GET All – Read
