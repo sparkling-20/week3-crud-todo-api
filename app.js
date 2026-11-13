@@ -2,10 +2,14 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const logRequest = require("./middlewares/logger.js");
+const { validateTodo, validateTodoUpdate } = require("./middlewares/validator.js");
+const errorhandler = require("./middlewares/errorhandler.js");
 const app = express();
 
 app.use(express.json());
 app.use(cors('*'));
+app.use(logRequest);
 
 app.get('/', (req, res) => {
     res.send('Todo API Ready!');
@@ -28,26 +32,39 @@ app.get('/todos/active', (req, res) => {
     });
 
 // GET Completed Todos
-app.get('/todos/completed', (req, res) => {
-  const completed = todos.filter((t) => t.completed);
-  res.status(200).json(completed);
-    });
+app.get('/todos/completed', (req, res, next) => {
+  try {
+    const completed = todos.filter((t) => t.completed);
+    res.status(200).json(completed);
+  } catch (error) {
+    next(error);
+  }
+});
 
 // GET Single Todo – Read
-app.get('/todos/:id', (req, res) => {
-const id = Number(req.params.id);
-  if (!Number.isInteger(id)) {
-  return res.status(400).json({ error: 'Invalid todo ID' });
+app.get('/todos/:id', (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ error: 'Invalid todo ID' });
+    }
+
+    const todo = todos.find((t) => t.id === id);
+
+    if (!todo) {
+      return res.status(404).json({ error: 'Todo not found' });
+    }
+
+    res.status(200).json(todo);
+  } catch (error) {
+    next(error);
   }
-const todo = todos.find((t) => t.id === id);
-if (!todo) {
-return res.status(404).json({ error: 'Todo not found' });
-}
-res.status(200).json(todo);
 });
 
 // POST New – Create
-app.post('/todos', (req, res) => {
+app.post('/todos', validateTodo, (req, res, next) => {
+  try {
 const { task } = req.body;
 if (typeof task !== 'string' || !task.trim()) {
 return res.status(400).json({
@@ -64,10 +81,14 @@ completed: false,
 
 todos.push(newTodo);
 res.status(201).json(newTodo);
+} catch (error) {
+    next(error);
+  }
  });
 
 // PATCH Update – Partial
-app.patch('/todos/:id', (req, res) => {
+app.patch('/todos/:id', validateTodoUpdate, (req, res, next) => {
+  try {
 const id = Number(req.params.id);
 if (!Number.isInteger(id) || id <= 0) {
 return res.status(400).json({ error: 'Invalid todo ID' });
@@ -89,10 +110,14 @@ return res.status(400).json({   error: 'Completed must be true or false',})
 if (task !== undefined) todo.task = task.trim();
 if (completed !== undefined) todo.completed = completed;
 res.status(200).json(todo);
+} catch (error) {
+    next(error);
+  }
 });
 
 // DELETE Remove
-app.delete('/todos/:id', (req, res) => {
+app.delete('/todos/:id', (req, res, next) => {
+  try {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) {
   return res.status(400).json({ error: 'Invalid todo ID' });
@@ -102,10 +127,11 @@ app.delete('/todos/:id', (req, res) => {
   if (todos.length === initialLength)
     return res.status(404).json({ error: 'Not found' });
   res.status(204).send(); // Silent success
+  } catch (error) {
+    next(error);
+  }
 });
-app.use((err, req, res, next) => {
-  res.status(500).json({ error: 'Server error!' });
-});
+app.use(errorhandler);
 
 const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => console.log(`Server on port ${PORT}`));
